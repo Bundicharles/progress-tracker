@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Progress Tracker</title>
+  <link rel="manifest" href="manifest.json" />
+  <meta name="theme-color" content="#4CAF50" />
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; margin: 0; }
+    h1 { text-align: center; }
+    .calendar { display: flex; flex-wrap: wrap; max-width: 320px; margin: auto; }
+    .day {
+      width: 40px; height: 40px;
+      margin: 2px;
+      display: flex; align-items: center; justify-content: center;
+      border: 1px solid #4CAF50;
+      border-radius: 5px;
+      cursor: pointer;
+      user-select: none;
+      font-weight: bold;
+      color: #4CAF50;
+      background: #fff;
+      transition: background 0.3s, color 0.3s;
+    }
+    .day.completed { background: #4CAF50; color: white; }
+    #streak { text-align: center; margin-top: 20px; font-size: 1.2em; }
+    button {
+      display: block;
+      margin: 15px auto;
+      padding: 10px 20px;
+      font-size: 1em;
+      cursor: pointer;
+    }
+    #reminder-btn {
+      background: #2196F3;
+      color: white;
+      border: none;
+      border-radius: 4px;
+    }
+  </style>
+</head>
+<body>
+
+<h1>Progress Tracker</h1>
+<div id="calendar" class="calendar"></div>
+<div id="streak">Current Streak: 0 days</div>
+<button id="reset-btn">Reset Tracker</button>
+<button id="reminder-btn">Enable Daily Reminder</button>
+
+<script>
+  const calendar = document.getElementById('calendar');
+  const streakDisplay = document.getElementById('streak');
+  const resetBtn = document.getElementById('reset-btn');
+  const reminderBtn = document.getElementById('reminder-btn');
+
+  let progress = JSON.parse(localStorage.getItem('calendarProgress')) || {};
+
+  function getTodayKey(date) {
+    return date.toISOString().split('T')[0];
+  }
+
+  function generateCalendar() {
+    calendar.innerHTML = '';
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = today.getMonth();
+
+    const firstDay = new Date(year, month, 1);
+    const lastDay = new Date(year, month + 1, 0);
+
+    for (let d = 1; d <= lastDay.getDate(); d++) {
+      const date = new Date(year, month, d);
+      const key = getTodayKey(date);
+      const div = document.createElement('div');
+      div.classList.add('day');
+      div.textContent = d;
+      if (progress[key]) div.classList.add('completed');
+      div.addEventListener('click', () => {
+        progress[key] = !progress[key];
+        saveProgress();
+        generateCalendar();
+        updateStreak();
+      });
+      calendar.appendChild(div);
+    }
+  }
+
+  function saveProgress() {
+    localStorage.setItem('calendarProgress', JSON.stringify(progress));
+  }
+
+  function updateStreak() {
+    const sortedDates = Object.keys(progress).sort().reverse();
+    let streak = 0;
+    for (let date of sortedDates) {
+      if (progress[date]) streak++;
+      else break;
+    }
+    streakDisplay.textContent = `Current Streak: ${streak} day${streak !== 1 ? 's' : ''}`;
+  }
+
+  resetBtn.addEventListener('click', () => {
+    if (confirm('Reset all progress?')) {
+      progress = {};
+      saveProgress();
+      generateCalendar();
+      updateStreak();
+    }
+  });
+
+  reminderBtn.addEventListener('click', () => {
+    if (!("Notification" in window)) {
+      alert("Browser doesn't support notifications.");
+    } else if (Notification.permission === "granted") {
+      scheduleDailyReminder();
+    } else if (Notification.permission !== "denied") {
+      Notification.requestPermission().then(permission => {
+        if (permission === "granted") scheduleDailyReminder();
+      });
+    }
+  });
+
+  function scheduleDailyReminder() {
+    alert("Daily reminder enabled! Keep this app open to receive notifications.");
+    sendNotification();
+    setInterval(sendNotification, 86400000);
+  }
+
+  function sendNotification() {
+    const notification = new Notification("Progress Tracker Reminder", {
+      body: "Remember to mark your calendar today!",
+      icon: "https://cdn-icons-png.flaticon.com/512/847/847969.png"
+    });
+  }
+
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('./sw.js')
+      .then(() => console.log("Service Worker Registered"));
+  }
+
+  generateCalendar();
+  updateStreak();
+</script>
+
+</body>
+</html>
