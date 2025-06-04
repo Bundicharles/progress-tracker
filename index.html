@@ -2,6 +2,15 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
+  <!-- Favicon -->
+<link rel="icon" type="image/png" href="icons/icon-192.png" />
+
+<!-- Apple Touch Icon (iOS) -->
+<link rel="apple-touch-icon" href="icons/icon-192.png" />
+
+<!-- Manifest for PWA -->
+<link rel="manifest" href="manifest.json" />
+
   <title>Calendar Progress Tracker</title>
   <style>
     body {
@@ -163,6 +172,11 @@
 
     renderCalendar();
     updateStreak();
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('./sw.js')
+        .then(() => console.log("Service Worker Registered"));
+    }
+    
   </script>
 
 </body>
