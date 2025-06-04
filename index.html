@@ -2,154 +2,168 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Progress Tracker</title>
-  <link rel="manifest" href="manifest.json" />
-  <!-- Favicon -->
-<link rel="icon" type="image/png" href="icons/icon-192.png" />
-
-<!-- Apple Touch Icon (iOS) -->
-<link rel="apple-touch-icon" href="icons/icon-192.png" />
-
-<!-- Manifest for PWA -->
-<link rel="manifest" href="manifest.json" />
-
-  <meta name="theme-color" content="#4CAF50" />
+  <title>Calendar Progress Tracker</title>
   <style>
-    body { font-family: Arial, sans-serif; padding: 20px; margin: 0; }
-    h1 { text-align: center; }
-    .calendar { display: flex; flex-wrap: wrap; max-width: 320px; margin: auto; }
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+      max-width: 600px;
+      margin: auto;
+    }
+
+    h1, #monthYear {
+      text-align: center;
+    }
+
+    .calendar {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 5px;
+      margin-top: 10px;
+    }
+
     .day {
-      width: 40px; height: 40px;
-      margin: 2px;
-      display: flex; align-items: center; justify-content: center;
-      border: 1px solid #4CAF50;
+      width: 100%;
+      padding: 10px 0;
+      text-align: center;
+      border: 1px solid #ccc;
       border-radius: 5px;
       cursor: pointer;
-      user-select: none;
-      font-weight: bold;
+      background-color: white;
       color: #4CAF50;
-      background: #fff;
-      transition: background 0.3s, color 0.3s;
+      font-weight: bold;
     }
-    .day.completed { background: #4CAF50; color: white; }
-    #streak { text-align: center; margin-top: 20px; font-size: 1.2em; }
-    button {
-      display: block;
-      margin: 15px auto;
-      padding: 10px 20px;
-      font-size: 1em;
-      cursor: pointer;
-    }
-    #reminder-btn {
-      background: #2196F3;
+
+    .day.completed {
+      background-color: #4CAF50;
       color: white;
-      border: none;
-      border-radius: 4px;
+    }
+
+    .day.inactive {
+      background-color: #f4f4f4;
+      color: #aaa;
+      cursor: default;
+    }
+
+    .calendar-header {
+      font-weight: bold;
+      text-align: center;
+      padding: 5px 0;
+    }
+
+    #streak {
+      margin-top: 15px;
+      text-align: center;
+      font-size: 1.2em;
+      color: #333;
+    }
+
+    #nav {
+      text-align: center;
+      margin-bottom: 10px;
+    }
+
+    #nav button {
+      margin: 0 5px;
+      padding: 5px 10px;
     }
   </style>
 </head>
 <body>
 
-<h1>Progress Tracker</h1>
-<div id="calendar" class="calendar"></div>
-<div id="streak">Current Streak: 0 days</div>
-<button id="reset-btn">Reset Tracker</button>
-<button id="reminder-btn">Enable Daily Reminder</button>
+  <h1>Progress Calendar Tracker</h1>
+  <div id="nav">
+    <button onclick="changeMonth(-1)">← Prev</button>
+    <span id="monthYear"></span>
+    <button onclick="changeMonth(1)">Next →</button>
+  </div>
 
-<script>
-  const calendar = document.getElementById('calendar');
-  const streakDisplay = document.getElementById('streak');
-  const resetBtn = document.getElementById('reset-btn');
-  const reminderBtn = document.getElementById('reminder-btn');
+  <div class="calendar" id="calendar-header">
+    <div class="calendar-header">Sun</div>
+    <div class="calendar-header">Mon</div>
+    <div class="calendar-header">Tue</div>
+    <div class="calendar-header">Wed</div>
+    <div class="calendar-header">Thu</div>
+    <div class="calendar-header">Fri</div>
+    <div class="calendar-header">Sat</div>
+  </div>
 
-  let progress = JSON.parse(localStorage.getItem('calendarProgress')) || {};
+  <div class="calendar" id="calendar-body"></div>
 
-  function getTodayKey(date) {
-    return date.toISOString().split('T')[0];
-  }
+  <div id="streak">Total Completed Days: 0</div>
 
-  function generateCalendar() {
-    calendar.innerHTML = '';
-    const today = new Date();
-    const year = today.getFullYear();
-    const month = today.getMonth();
+  <script>
+    const calendarBody = document.getElementById('calendar-body');
+    const monthYearLabel = document.getElementById('monthYear');
+    let progress = JSON.parse(localStorage.getItem('calendarProgress')) || {};
+    let currentDate = new Date();
 
-    const firstDay = new Date(year, month, 1);
-    const lastDay = new Date(year, month + 1, 0);
-
-    for (let d = 1; d <= lastDay.getDate(); d++) {
-      const date = new Date(year, month, d);
-      const key = getTodayKey(date);
-      const div = document.createElement('div');
-      div.classList.add('day');
-      div.textContent = d;
-      if (progress[key]) div.classList.add('completed');
-      div.addEventListener('click', () => {
-        progress[key] = !progress[key];
-        saveProgress();
-        generateCalendar();
-        updateStreak();
-      });
-      calendar.appendChild(div);
+    function formatDate(date) {
+      return date.toISOString().split('T')[0];
     }
-  }
 
-  function saveProgress() {
-    localStorage.setItem('calendarProgress', JSON.stringify(progress));
-  }
+    function renderCalendar() {
+      calendarBody.innerHTML = '';
+      const year = currentDate.getFullYear();
+      const month = currentDate.getMonth();
+      const firstDay = new Date(year, month, 1);
+      const lastDay = new Date(year, month + 1, 0);
 
-  function updateStreak() {
-    const sortedDates = Object.keys(progress).sort().reverse();
-    let streak = 0;
-    for (let date of sortedDates) {
-      if (progress[date]) streak++;
-      else break;
+      const startDay = firstDay.getDay();
+      const totalDays = lastDay.getDate();
+
+      monthYearLabel.textContent = `${firstDay.toLocaleString('default', { month: 'long' })} ${year}`;
+
+      // Fill blanks before the first day
+      for (let i = 0; i < startDay; i++) {
+        const blank = document.createElement('div');
+        blank.classList.add('day', 'inactive');
+        calendarBody.appendChild(blank);
+      }
+
+      // Fill actual days
+      for (let day = 1; day <= totalDays; day++) {
+        const date = new Date(year, month, day);
+        const dateStr = formatDate(date);
+
+        const cell = document.createElement('div');
+        cell.classList.add('day');
+        cell.textContent = day;
+
+        if (progress[dateStr]) {
+          cell.classList.add('completed');
+        }
+
+        cell.addEventListener('click', () => {
+          if (cell.classList.contains('inactive')) return;
+
+          progress[dateStr] = !progress[dateStr];
+          saveProgress();
+          renderCalendar();
+          updateStreak();
+        });
+
+        calendarBody.appendChild(cell);
+      }
     }
-    streakDisplay.textContent = `Current Streak: ${streak} day${streak !== 1 ? 's' : ''}`;
-  }
 
-  resetBtn.addEventListener('click', () => {
-    if (confirm('Reset all progress?')) {
-      progress = {};
-      saveProgress();
-      generateCalendar();
-      updateStreak();
+    function saveProgress() {
+      localStorage.setItem('calendarProgress', JSON.stringify(progress));
     }
-  });
 
-  reminderBtn.addEventListener('click', () => {
-    if (!("Notification" in window)) {
-      alert("Browser doesn't support notifications.");
-    } else if (Notification.permission === "granted") {
-      scheduleDailyReminder();
-    } else if (Notification.permission !== "denied") {
-      Notification.requestPermission().then(permission => {
-        if (permission === "granted") scheduleDailyReminder();
-      });
+    function updateStreak() {
+      const total = Object.values(progress).filter(done => done).length;
+      document.getElementById('streak').textContent = `Total Completed Days: ${total}`;
     }
-  });
 
-  function scheduleDailyReminder() {
-    alert("Daily reminder enabled! Keep this app open to receive notifications.");
-    sendNotification();
-    setInterval(sendNotification, 86400000);
-  }
+    function changeMonth(offset) {
+      currentDate.setMonth(currentDate.getMonth() + offset);
+      renderCalendar();
+    }
 
-  function sendNotification() {
-    const notification = new Notification("Progress Tracker Reminder", {
-      body: "Remember to mark your calendar today!",
-      icon: "https://cdn-icons-png.flaticon.com/512/847/847969.png"
-    });
-  }
-
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('./sw.js')
-      .then(() => console.log("Service Worker Registered"));
-  }
-
-  generateCalendar();
-  updateStreak();
-</script>
+    renderCalendar();
+    updateStreak();
+  </script>
 
 </body>
 </html>
