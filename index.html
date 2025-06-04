@@ -3,14 +3,9 @@
 <head>
   <meta charset="UTF-8" />
   <!-- Favicon -->
-<link rel="icon" type="image/png" href="icons/icon-192.png" />
-
-<!-- Apple Touch Icon (iOS) -->
-<link rel="apple-touch-icon" href="icons/icon-192.png" />
-
-<!-- Manifest for PWA -->
-<link rel="manifest" href="manifest.json" />
-
+  <link rel="icon" type="image/png" href="icons/icon-192.png" />
+  <link rel="apple-touch-icon" href="icons/icon-192.png" />
+  <link rel="manifest" href="manifest.json" />
   <title>Calendar Progress Tracker</title>
   <style>
     body {
@@ -76,11 +71,36 @@
       margin: 0 5px;
       padding: 5px 10px;
     }
+
+    .controls {
+      text-align: center;
+      margin-top: 15px;
+    }
+
+    .controls button {
+      margin: 5px;
+      padding: 10px 15px;
+      font-size: 1em;
+      cursor: pointer;
+      border: none;
+      border-radius: 4px;
+    }
+
+    #reset-btn {
+      background-color: #f44336;
+      color: white;
+    }
+
+    #reminder-btn {
+      background-color: #2196F3;
+      color: white;
+    }
   </style>
 </head>
 <body>
 
   <h1>Progress Calendar Tracker</h1>
+
   <div id="nav">
     <button onclick="changeMonth(-1)">← Prev</button>
     <span id="monthYear"></span>
@@ -101,9 +121,18 @@
 
   <div id="streak">Total Completed Days: 0</div>
 
+  <div class="controls">
+    <button id="reset-btn">Reset Streak</button>
+    <button id="reminder-btn">Enable Daily Reminder</button>
+  </div>
+
   <script>
     const calendarBody = document.getElementById('calendar-body');
     const monthYearLabel = document.getElementById('monthYear');
+    const streakDisplay = document.getElementById('streak');
+    const resetBtn = document.getElementById('reset-btn');
+    const reminderBtn = document.getElementById('reminder-btn');
+
     let progress = JSON.parse(localStorage.getItem('calendarProgress')) || {};
     let currentDate = new Date();
 
@@ -123,14 +152,12 @@
 
       monthYearLabel.textContent = `${firstDay.toLocaleString('default', { month: 'long' })} ${year}`;
 
-      // Fill blanks before the first day
       for (let i = 0; i < startDay; i++) {
         const blank = document.createElement('div');
         blank.classList.add('day', 'inactive');
         calendarBody.appendChild(blank);
       }
 
-      // Fill actual days
       for (let day = 1; day <= totalDays; day++) {
         const date = new Date(year, month, day);
         const dateStr = formatDate(date);
@@ -145,7 +172,6 @@
 
         cell.addEventListener('click', () => {
           if (cell.classList.contains('inactive')) return;
-
           progress[dateStr] = !progress[dateStr];
           saveProgress();
           renderCalendar();
@@ -162,7 +188,7 @@
 
     function updateStreak() {
       const total = Object.values(progress).filter(done => done).length;
-      document.getElementById('streak').textContent = `Total Completed Days: ${total}`;
+      streakDisplay.textContent = `Total Completed Days: ${total}`;
     }
 
     function changeMonth(offset) {
@@ -170,13 +196,47 @@
       renderCalendar();
     }
 
+    resetBtn.addEventListener('click', () => {
+      if (confirm('Reset all progress?')) {
+        progress = {};
+        saveProgress();
+        renderCalendar();
+        updateStreak();
+      }
+    });
+
+    reminderBtn.addEventListener('click', () => {
+      if (!("Notification" in window)) {
+        alert("Browser doesn't support notifications.");
+      } else if (Notification.permission === "granted") {
+        scheduleDailyReminder();
+      } else if (Notification.permission !== "denied") {
+        Notification.requestPermission().then(permission => {
+          if (permission === "granted") scheduleDailyReminder();
+        });
+      }
+    });
+
+    function scheduleDailyReminder() {
+      alert("Daily reminder enabled! Keep this app open to receive notifications.");
+      sendNotification();
+      setInterval(sendNotification, 86400000); // 24 hours
+    }
+
+    function sendNotification() {
+      new Notification("Progress Tracker Reminder", {
+        body: "Remember to mark your calendar today!",
+        icon: "https://cdn-icons-png.flaticon.com/512/847/847969.png"
+      });
+    }
+
     renderCalendar();
     updateStreak();
+
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('./sw.js')
         .then(() => console.log("Service Worker Registered"));
     }
-    
   </script>
 
 </body>
