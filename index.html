@@ -12,6 +12,7 @@
       padding: 20px;
       max-width: 600px;
       margin: auto;
+      background-color: aqua;
     }
 
     h1, #monthYear {
@@ -29,7 +30,7 @@
       width: 100%;
       padding: 10px 0;
       text-align: center;
-      border: 1px solid #ccc;
+      border: 1px solid #636161;
       border-radius: 5px;
       cursor: pointer;
       background-color: rgb(49, 34, 90);
@@ -39,7 +40,7 @@
 
     .day.inactive {
       background-color: #3df30f;
-      color: #aaa;
+      color: #ec0f0f;
       cursor: default;
     }
 
@@ -53,7 +54,7 @@
       margin-top: 15px;
       text-align: center;
       font-size: 1.2em;
-      color: #333;
+      color: #fd0c0c;
     }
 
     #nav {
@@ -79,6 +80,7 @@
       cursor: pointer;
       border: none;
       border-radius: 4px;
+      background-color: #4CAF50;
     }
 
     #reset-btn {
@@ -230,8 +232,22 @@
     }
 
     function updateStreak() {
-      const total = Object.keys(progress).length;
-      streakDisplay.textContent = `Total Completed Days: ${total}`;
+      let doneColor = '#0733f8'; // The specific color you consider as DONE
+      let doneCount = 0;
+      let affectedCount = 0;
+
+      for (let date in progress) {
+        if (progress[date].toLowerCase() === doneColor.toLowerCase()) {
+          doneCount++;
+        } else {
+          affectedCount++;
+        }
+      }
+
+      streakDisplay.innerHTML = `
+        <div>STREAKS (DONE): <strong>${doneCount}</strong></div>
+        <div>STREAKS (AFFECTED): <strong>${affectedCount}</strong></div>
+      `;
     }
 
     function changeMonth(offset) {
@@ -269,7 +285,7 @@
     function sendNotification() {
       new Notification("Progress Tracker Reminder", {
         body: "Remember to mark your calendar today!",
-        icon: "https://cdn-icons-png.flaticon.com/512/847/847969.png"
+        icon: "icons/profile.png"
       });
     }
 
